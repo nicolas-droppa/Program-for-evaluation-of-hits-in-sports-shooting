@@ -367,6 +367,58 @@ def detect_target_with_color(image_path):
     showImage("contourFrame", contourFrame)
 
 
+def overlayGrid(img, step=20, line_color=(128, 128, 150), thickness=2, darker_line_color=(0, 0, 255), font_scale=0.8, font_color=(0, 0, 255)):
+    """
+    Overlays a grid on the given image with every 5th line darker and adds numbers on top and left side.
+
+    Parameters:
+    -----------
+    img : numpy.ndarray
+        The image to overlay the grid on.
+    step : int, optional
+        The spacing between grid lines in pixels. Default is 10.
+    line_color : tuple, optional
+        The color of the grid lines in BGR format. Default is green (0, 255, 0).
+    thickness : int, optional
+        The thickness of the grid lines. Default is 1.
+    darker_line_color : tuple, optional
+        The color of the darker grid lines in BGR format. Default is dark green (0, 128, 0).
+    font_scale : float, optional
+        The scale of the font for displaying numbers. Default is 0.5.
+    font_color : tuple, optional
+        The color of the numbers in BGR format. Default is red (0, 0, 255).
+
+    Returns:
+    --------
+    numpy.ndarray
+        The image with the grid overlayed and numbers displayed.
+    """
+    # Make a copy of the image to avoid modifying the original
+    overlayed_img = img.copy()
+    height, width = overlayed_img.shape[:2]
+
+    # Define the font for displaying numbers
+    font = cv2.FONT_HERSHEY_SIMPLEX
+
+    # Draw vertical grid lines and display numbers on the left
+    for x in range(0, width, step):
+        color = darker_line_color if (x // step) % 5 == 0 else line_color
+        cv2.line(overlayed_img, (x, 0), (x, height), color=color, thickness=thickness)
+        # Display number on the left side of the image
+        if x % (step * 5) == 0:  # Only display numbers every 5 steps for readability
+            cv2.putText(overlayed_img, str(x), (x + 5, 20), font, font_scale, font_color, thickness=1)
+
+    # Draw horizontal grid lines and display numbers on the top
+    for y in range(0, height, step):
+        color = darker_line_color if (y // step) % 5 == 0 else line_color
+        cv2.line(overlayed_img, (0, y), (width, y), color=color, thickness=thickness)
+        # Display number on the top side of the image
+        if y % (step * 5) == 0:  # Only display numbers every 5 steps for readability
+            cv2.putText(overlayed_img, str(y), (5, y + 20), font, font_scale, font_color, thickness=1)
+
+    return overlayed_img
+
+
 if __name__ == '__main__':
     # detectAndHighlightCircles("../../images/circles.png")
     # testSkewedImages("../../images/", [0, 5, 10, 15, 20])
@@ -396,6 +448,8 @@ if __name__ == '__main__':
     image = readImage(imagePath)
     image = resizeImage(image)
     showImage("Resized image", image)
+    gridImage = overlayGrid(image)
+    showImage("Grid image", gridImage)
 
 
 print("hello")
