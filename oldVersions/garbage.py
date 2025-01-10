@@ -2,46 +2,6 @@ from scipy.ndimage import rotate
 from colorama import Fore
 import cv2
 import numpy as np
-from utils.imageOperations import readImage
-from screeninfo import get_monitors
-
-
-def resizeImage(img):
-    """
-    Resizes an image to fit within the screen dimensions, keeping the aspect ratio intact.
-
-    Parameters:
-    -----------
-    img : numpy.ndarray
-        The image to be resized.
-
-    Returns:
-    --------
-    numpy.ndarray
-        The resized image.
-    """
-    screen = get_monitors()[0]
-    screen_width = screen.width
-    screen_height = screen.height
-
-    max_width = screen_width * 0.9
-    max_height = screen_height * 0.9
-
-    height, width = img.shape[:2]
-
-    scale_factor_width = max_width / width
-    scale_factor_height = max_height / height
-
-    scale_factor = min(scale_factor_width, scale_factor_height)
-
-    if scale_factor >= 1:
-        return img
-
-    new_width = int(width * scale_factor)
-    new_height = int(height * scale_factor)
-
-    return cv2.resize(img, (new_width, new_height))
-
 
 def correctSkew(image, delta=1, limit=50):
     def determine_score(arr, angle):
@@ -152,6 +112,20 @@ def draw_coordinate_system(image):
     return img
 
 
+def readImage(imagePath):
+    """
+    The function takes an path of stored image as an argument and returns opened image
+
+    imagePath - path to locally stored image
+    """
+    img = cv2.imread(imagePath)
+
+    if img is None:
+        raise FileNotFoundError(f"Image at path '{imagePath}' could not be opened.")
+
+    return img
+
+
 def getImageSize(img):
     """
     The function takes an image as an argument and returns its height and width
@@ -159,6 +133,34 @@ def getImageSize(img):
     img - image
     """
     return img.shape
+
+
+def resizeImage(img):
+    """
+    The function takes an image as an argument and returns resized image that is at least 1000px wide and high, while
+    maintaining the aspect ratio
+
+    img - image to be resized
+    """
+    height, width = img.shape[:2]
+
+    if width < 1000 or height < 1000:
+        scale_factor_width = 1000 / width
+        scale_factor_height = 1000 / height
+        scale_factor = max(scale_factor_width, scale_factor_height)
+    elif width > 1500 or height > 1500:
+        scale_factor_width = 1500 / width
+        scale_factor_height = 1500 / height
+        scale_factor = min(scale_factor_width, scale_factor_height)
+    else:
+        return img
+
+    new_width = int(width * scale_factor)
+    new_height = int(height * scale_factor)
+    print(new_height, new_width)
+
+    return cv2.resize(img, (new_width, new_height))
+
 
 def showImage(title, img):
     """
@@ -424,16 +426,12 @@ if __name__ == '__main__':
     #detectHarrisCorners(image)
     #showImage("har", image)
     
-    #detect_target_with_color(imagePath)
+    detect_target_with_color(imagePath)
 
     # result_image = draw_coordinate_system(image)
     # cv2.imshow("Coordinate System", result_image)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
-
-    image = readImage(imagePath)
-    resizeImage(image)
-    showImage("Resized image", image)
 
 
 print("hello")
