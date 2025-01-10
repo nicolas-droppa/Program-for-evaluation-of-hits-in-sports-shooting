@@ -6,43 +6,6 @@ from utils.imageOperations import readImage
 from screeninfo import get_monitors
 
 
-def resizeImage(img):
-    """
-    Resizes an image to fit within the screen dimensions, keeping the aspect ratio intact.
-
-    Parameters:
-    -----------
-    img : numpy.ndarray
-        The image to be resized.
-
-    Returns:
-    --------
-    numpy.ndarray
-        The resized image.
-    """
-    screen = get_monitors()[0]
-    screen_width = screen.width
-    screen_height = screen.height
-
-    max_width = screen_width * 0.9
-    max_height = screen_height * 0.9
-
-    height, width = img.shape[:2]
-
-    scale_factor_width = max_width / width
-    scale_factor_height = max_height / height
-
-    scale_factor = min(scale_factor_width, scale_factor_height)
-
-    if scale_factor >= 1:
-        return img
-
-    new_width = int(width * scale_factor)
-    new_height = int(height * scale_factor)
-
-    return cv2.resize(img, (new_width, new_height))
-
-
 def correctSkew(image, delta=1, limit=50):
     def determine_score(arr, angle):
         data = rotate(arr, angle, reshape=False, order=0)  # Updated usage
@@ -432,7 +395,7 @@ if __name__ == '__main__':
     # cv2.destroyAllWindows()
 
     image = readImage(imagePath)
-    resizeImage(image)
+    image = resizeImage(image)
     showImage("Resized image", image)
 
 
