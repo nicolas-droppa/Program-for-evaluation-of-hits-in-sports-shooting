@@ -2,8 +2,7 @@ from scipy.ndimage import rotate
 from colorama import Fore
 import cv2
 import numpy as np
-from utils.imageOperations import readImage
-from screeninfo import get_monitors
+from utils.imageOperations import readImage, resizeImage
 
 
 def correctSkew(image, delta=1, limit=50):
