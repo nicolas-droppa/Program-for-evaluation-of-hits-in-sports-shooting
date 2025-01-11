@@ -151,6 +151,14 @@ def blurImage(img):
     """
     return cv2.GaussianBlur(img, (5, 5), 1)
 
+def medianBlurImage(img):
+    """
+    The function takes an image as an argument and returns blurred image
+
+    img - image
+    """
+    return cv2.medianBlur(img,5)
+
 
 def findImageEdges(img):
     """
@@ -161,7 +169,7 @@ def findImageEdges(img):
     return cv2.Canny(img, 200, 50)
 
 
-def makeCountours(img, originalImg):
+def makeCountoursBEST(img, originalImg):
     """
     Finds contours in and image and draws them
 
@@ -184,11 +192,55 @@ def makeCountours(img, originalImg):
                 biggest = edges
                 maxArea = area
 
-    print(biggest[0])
+    print(biggest)
 
     if len(biggest) != 0:
         # drawRec(biggest, cornerFrame)
         cornerFrame = cv2.drawContours(cornerFrame, biggest, -1, (255, 0, 255), 5)
+
+    return cornerFrame
+
+def makeContours(img, originalImg):
+    """
+    Finds contours in an image and draws the largest quadrilateral (e.g., paper corners).
+
+    Parameters:
+    -----------
+    img : numpy.ndarray
+        Preprocessed image (e.g., thresholded or edge-detected) for contour detection.
+    originalImg : numpy.ndarray
+        Original image on which contours will be drawn.
+
+    Returns:
+    --------
+    numpy.ndarray
+        Image with the largest quadrilateral's corners highlighted.
+    """
+    # Find contours in the image
+    contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contourFrame = originalImg.copy()
+    cv2.drawContours(contourFrame, contours, -1, (255, 0, 0), 2)  # Optional: visualize all contours
+    
+    maxArea = 0
+    biggest = []
+
+    # Iterate through contours to find the largest quadrilateral
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area > 1000:  # Ignore small areas (e.g., noise)
+            peri = cv2.arcLength(contour, True)  # Calculate the perimeter
+            approx = cv2.approxPolyDP(contour, 0.02 * peri, True)  # Approximate the polygon
+            if len(approx) == 4 and area > maxArea:  # Check if it's a quadrilateral
+                biggest = approx  # Save the largest quadrilateral
+                maxArea = area
+
+    if len(biggest) == 4:
+        # Draw the largest quadrilateral
+        cornerFrame = cv2.drawContours(originalImg.copy(), [biggest], -1, (255, 0, 255), 5)
+    else:
+        # If no quadrilateral is found, return the original image
+        print("NO QUADRITERAL!")
+        cornerFrame = originalImg.copy()
 
     return cornerFrame
 
@@ -236,7 +288,9 @@ def func(imgPath):
     grayImage = convertToGrayScale(image)
     #showImage("gray", grayImage)
 
-    bluredImage = blurImage(grayImage)
+    bluredImage = medianBlurImage(grayImage)
+    bluredImage = blurImage(bluredImage)
+    bluredImage = cv2.blur(bluredImage,(5,5))
     #showImage("blur", bluredImage)
 
     cannyImage = findImageEdges(bluredImage)
@@ -341,6 +395,7 @@ def detect_target_with_color(image_path):
     target_roi = image[y:y+h, x:x+w]
 
     # 7. Detekcia rohov v oblasti terča
+    """
     gray_target = cv2.cvtColor(target_roi, cv2.COLOR_BGR2GRAY)
     corners = cv2.goodFeaturesToTrack(gray_target, maxCorners=4, qualityLevel=0.01, minDistance=30)
 
@@ -349,21 +404,27 @@ def detect_target_with_color(image_path):
         for corner in corners:
             cx, cy = corner.ravel()
             cv2.circle(target_roi, (cx, cy), 10, (0, 255, 0), -1)
-
+    """
     # 8. Zobrazenie výsledkov
-    cv2.imshow("Original Image", image)
-    cv2.imshow("Mask", mask)
-    cv2.imshow("Detected Target", target_roi)
+    #cv2.imshow("Original Image", image)
+    #cv2.imshow("Mask", mask)
+    #cv2.imshow("Detected Target", target_roi)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-    bluredImage = blurImage(mask)
+    bluredImage = blurImage(result)
     #showImage("blur", bluredImage)
 
     cannyImage = findImageEdges(bluredImage)
-    showImage("canny", cannyImage)
+    #showImage("canny", cannyImage)
+    lines = cv2.HoughLinesP(cannyImage, 1, np.pi/180, 200, minLineLength=200, maxLineGap=200)
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        cv2.line(image, (x1, y1), (x2,y2), (0,255,0), 3)
 
-    contourFrame = makeCountours(cannyImage, image)
+    #contourFrame = makeCountours(cannyImage, image)
+    #showImage("contourFrame", contourFrame)
+    contourFrame = makeCountoursBEST(cannyImage, image)
     showImage("contourFrame", contourFrame)
 
 
@@ -426,7 +487,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_3.jpg"
+    imagePath = "images/targets/target_14.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
@@ -447,9 +508,10 @@ if __name__ == '__main__':
 
     image = readImage(imagePath)
     image = resizeImage(image)
-    showImage("Resized image", image)
     gridImage = overlayGrid(image)
-    showImage("Grid image", gridImage)
+    #showImage("Grid image", gridImage)
+
+    detect_target_with_color(imagePath)
 
 
 print("hello")
