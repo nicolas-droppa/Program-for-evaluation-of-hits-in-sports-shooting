@@ -52,8 +52,6 @@ def resizeImage(img):
 
     scale_factor = min(scale_factor_width, scale_factor_height)
 
-    print(scale_factor)
-
     if scale_factor >= 1:
         return img
 
