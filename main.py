@@ -270,7 +270,6 @@ if __name__ == '__main__':
     #imagePath = "../images/t2.jpg"
     imagePath = "images/targets/target_3.jpg"
     func(imagePath)
-    # result_image = draw_coordinate_system(image)
     # cv2.imshow("Coordinate System", result_image)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
