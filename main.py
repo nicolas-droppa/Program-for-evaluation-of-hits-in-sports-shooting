@@ -5,14 +5,6 @@ import numpy as np
 from utils.imageOperations import readImage, resizeImage
 
 
-def getImageSize(img):
-    """
-    The function takes an image as an argument and returns its height and width
-
-    img - image
-    """
-    return img.shape
-
 def showImage(title, img):
     """
     The function takes an image and title as arguments and displays the image with its title, then waits for key to
@@ -190,6 +182,48 @@ def func(imgPath):
     contourFrame = makeContoursB(cannyImage, image)
     showImage("contourFrame", contourFrame)
 
+
+def find_corners(img, max_corners=4, quality_level=0.01, min_distance=10):
+    """
+    Finds corners in the given image using Shi-Tomasi Corner Detection.
+
+    Parameters:
+    ----------
+    img : numpy.ndarray
+        Input image (should be grayscale).
+    max_corners : int, optional
+        Maximum number of corners to return. Default is 4.
+    quality_level : float, optional
+        Minimum accepted quality of image corners (0 to 1). Default is 0.01.
+    min_distance : int, optional
+        Minimum possible Euclidean distance between the returned corners. Default is 10.
+
+    Returns:
+    -------
+    corners : numpy.ndarray
+        Detected corners as (x, y) coordinates.
+    result_img : numpy.ndarray
+        Image with detected corners marked.
+    """
+    # Ensure input image is grayscale
+    if len(img.shape) > 2:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = img
+
+    # Detect corners using Shi-Tomasi
+    corners = cv2.goodFeaturesToTrack(gray, max_corners, quality_level, min_distance)
+    corners = np.int8(corners)  # Convert to integer coordinates
+
+    # Draw the corners on the original image
+    result_img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    for corner in corners:
+        x, y = corner.ravel()
+        cv2.circle(result_img, (x, y), 5, (0, 0, 255), -1)
+
+    return corners, result_img
+
+
 def detect_target_with_color(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -228,7 +262,7 @@ def detect_target_with_color(image):
     # 8. Zobrazenie výsledkov
     cv2.imshow("Original Image", image)
     cv2.imshow("Mask", mask)
-    #cv2.imshow("Detected Target", target_roi)
+    cv2.imshow("Detected Target", target_roi)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -241,6 +275,11 @@ def detect_target_with_color(image):
     for line in lines:
         x1, y1, x2, y2 = line[0]
         cv2.line(image, (x1, y1), (x2,y2), (0,255,0), 3)
+
+    corners, res = find_corners(target_roi)
+
+    # Show results
+    cv2.imshow("Corners", res)
 
     #contourFrame = makeCountours(cannyImage, image)
     #showImage("contourFrame", contourFrame)
@@ -307,7 +346,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_3.jpg"
+    imagePath = "images/targets/target_18.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
