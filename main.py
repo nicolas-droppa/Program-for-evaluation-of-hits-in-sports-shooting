@@ -307,7 +307,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_1.jpg"
+    imagePath = "images/targets/target_3.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
