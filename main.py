@@ -17,6 +17,66 @@ def showImage(title, img):
     cv2.waitKey(0)
 
 
+def showImagesGrid(images, window_title="Image Grid", grid_shape=None, cell_size=(200, 200), bg_color=(0, 0, 0)):
+    """
+    Displays multiple images in a grid layout on a single canvas, preserving their aspect ratio.
+
+    :param images: List of images to display
+    :param window_title: Title of the window displaying the canvas
+    :param grid_shape: Tuple (rows, cols) specifying the grid layout. If None, the layout is automatically calculated.
+    :param cell_size: Tuple (width, height) specifying the size of each image cell
+    :param bg_color: Tuple (B, G, R) specifying the background color of the canvas
+    """
+    num_images = len(images)
+
+    # Automatically determine grid shape if not provided
+    if grid_shape is None:
+        cols = int(np.ceil(np.sqrt(num_images)))
+        rows = int(np.ceil(num_images / cols))
+    else:
+        rows, cols = grid_shape
+
+    # Determine canvas size
+    canvas_height = rows * cell_size[1]
+    canvas_width = cols * cell_size[0]
+    canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
+    canvas[:] = bg_color  # Fill the background
+
+    # Place each image in the grid
+    for idx, img in enumerate(images):
+        row, col = divmod(idx, cols)
+        x_start, y_start = col * cell_size[0], row * cell_size[1]
+        x_end, y_end = x_start + cell_size[0], y_start + cell_size[1]
+
+        # Ensure the image has 3 channels (convert grayscale to BGR if needed)
+        if len(img.shape) == 2:  # Grayscale image
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+        # Calculate the aspect ratio
+        h, w = img.shape[:2]
+        aspect_ratio = w / h
+
+        # Resize the image while preserving its aspect ratio
+        if aspect_ratio > 1:  # Wider than tall
+            new_w = cell_size[0]
+            new_h = int(cell_size[0] / aspect_ratio)
+        else:  # Taller than wide
+            new_h = cell_size[1]
+            new_w = int(cell_size[1] * aspect_ratio)
+
+        resized_img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        # Center the resized image within the cell
+        x_offset = x_start + (cell_size[0] - new_w) // 2
+        y_offset = y_start + (cell_size[1] - new_h) // 2
+        canvas[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = resized_img
+
+    # Display the canvas
+    cv2.imshow(window_title, canvas)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
 def convertToGrayScale(img):
     """
     The function takes an image as an argument and returns converted image in gray color
@@ -183,49 +243,9 @@ def func(imgPath):
     showImage("contourFrame", contourFrame)
 
 
-def find_corners(img, max_corners=4, quality_level=0.01, min_distance=10):
-    """
-    Finds corners in the given image using Shi-Tomasi Corner Detection.
-
-    Parameters:
-    ----------
-    img : numpy.ndarray
-        Input image (should be grayscale).
-    max_corners : int, optional
-        Maximum number of corners to return. Default is 4.
-    quality_level : float, optional
-        Minimum accepted quality of image corners (0 to 1). Default is 0.01.
-    min_distance : int, optional
-        Minimum possible Euclidean distance between the returned corners. Default is 10.
-
-    Returns:
-    -------
-    corners : numpy.ndarray
-        Detected corners as (x, y) coordinates.
-    result_img : numpy.ndarray
-        Image with detected corners marked.
-    """
-    # Ensure input image is grayscale
-    if len(img.shape) > 2:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = img
-
-    # Detect corners using Shi-Tomasi
-    corners = cv2.goodFeaturesToTrack(gray, max_corners, quality_level, min_distance)
-    corners = np.int8(corners)  # Convert to integer coordinates
-
-    # Draw the corners on the original image
-    result_img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    for corner in corners:
-        x, y = corner.ravel()
-        cv2.circle(result_img, (x, y), 5, (0, 0, 255), -1)
-
-    return corners, result_img
-
-
 def detect_target_with_color(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    images = []
 
     # 2. Definovanie rozsahu farby papiera (napr. biela alebo svetlá farba)
     lower_color = np.array([20, 20, 150])  # Dolná hranica (svetlo žltá)
@@ -247,6 +267,7 @@ def detect_target_with_color(image):
     # 6. Získanie ohraničujúceho obdĺžnika (bounding box) terča
     x, y, w, h = cv2.boundingRect(largest_contour)
     target_roi = image[y:y+h, x:x+w]
+    print("x:" + str(x) + "\ny:" + str(y) + "\nw:" + str(w) + "\nh:" + str(h))
 
     # 7. Detekcia rohov v oblasti terča
     """
@@ -260,31 +281,42 @@ def detect_target_with_color(image):
             cv2.circle(target_roi, (cx, cy), 10, (0, 255, 0), -1)
     """
     # 8. Zobrazenie výsledkov
-    cv2.imshow("Original Image", image)
-    cv2.imshow("Mask", mask)
-    cv2.imshow("Detected Target", target_roi)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    #cv2.imshow("Original Image", image)
+    #cv2.imshow("Mask", mask)
+    #cv2.imshow("Detected Target", target_roi)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+    cv2.circle(image, (x, y), 10, (0, 255, 255), -1)
+    images.append(image)
+    images.append(mask)
+    images.append(target_roi)
 
     bluredImage = blurImage(result)
     #showImage("blur", bluredImage)
 
     cannyImage = findImageEdges(bluredImage)
-    showImage("canny", cannyImage)
+    #showImage("canny", cannyImage)
+    images.append(cannyImage)
     lines = cv2.HoughLinesP(cannyImage, 1, np.pi/180, 200, minLineLength=200, maxLineGap=200)
     for line in lines:
         x1, y1, x2, y2 = line[0]
         cv2.line(image, (x1, y1), (x2,y2), (0,255,0), 3)
 
-    corners, res = find_corners(target_roi)
-
     # Show results
-    cv2.imshow("Corners", res)
+    h = cv2.cvtColor(target_roi, cv2.COLOR_BGR2HSV)
+    ma = cv2.inRange(h, lower_color, upper_color)
+    r = cv2.bitwise_and(target_roi, target_roi, mask=ma)
+    bImage = medianBlurImage(r)
+    bImage = cv2.blur(bImage,(5,5))
+    cImage = findImageEdges(bImage)
+    cFrame = makeCountoursBEST(cImage, target_roi)
+    #showImage("contourFrame-T", cFrame)
 
     #contourFrame = makeCountours(cannyImage, image)
     #showImage("contourFrame", contourFrame)
     contourFrame = makeCountoursBEST(cannyImage, image)
-    showImage("contourFrame", contourFrame)
+    #showImage("contourFrame", contourFrame)
+    showImagesGrid(images, grid_shape=(3, 3), cell_size=(600, 600))
 
 
 def overlayGrid(img, step=20, line_color=(128, 128, 150), thickness=2, darker_line_color=(0, 0, 255), font_scale=0.8, font_color=(0, 0, 255)):
@@ -346,7 +378,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_18.jpg"
+    imagePath = "images/targets/target_2.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
