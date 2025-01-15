@@ -17,7 +17,7 @@ def showImage(title, img):
     cv2.waitKey(0)
 
 
-def showImagesGrid(images, window_title="Image Grid", grid_shape=None, cell_size=(200, 200), bg_color=(0, 0, 0)):
+def showImagesGrid(images, window_title="Image Grid", grid_shape=None, cell_size=(200, 200), bg_color=(255, 255, 255)):
     """
     Displays multiple images in a grid layout on a single canvas, preserving their aspect ratio.
 
@@ -266,7 +266,7 @@ def detect_target_with_color(image):
 
     # 6. Získanie ohraničujúceho obdĺžnika (bounding box) terča
     x, y, w, h = cv2.boundingRect(largest_contour)
-    target_roi = image[y:y+h, x:x+w]
+    target_roi = image[y-150:y+h+150, x-150:x+w+150]
     print("x:" + str(x) + "\ny:" + str(y) + "\nw:" + str(w) + "\nh:" + str(h))
 
     # 7. Detekcia rohov v oblasti terča
@@ -286,10 +286,9 @@ def detect_target_with_color(image):
     #cv2.imshow("Detected Target", target_roi)
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
-    cv2.circle(image, (x, y), 10, (0, 255, 255), -1)
+    #cv2.circle(image, (x, y), 10, (0, 255, 255), -1)
     images.append(image)
     images.append(mask)
-    images.append(target_roi)
 
     bluredImage = blurImage(result)
     #showImage("blur", bluredImage)
@@ -297,11 +296,13 @@ def detect_target_with_color(image):
     cannyImage = findImageEdges(bluredImage)
     #showImage("canny", cannyImage)
     images.append(cannyImage)
+    images.append(target_roi)
+    """
     lines = cv2.HoughLinesP(cannyImage, 1, np.pi/180, 200, minLineLength=200, maxLineGap=200)
     for line in lines:
         x1, y1, x2, y2 = line[0]
         cv2.line(image, (x1, y1), (x2,y2), (0,255,0), 3)
-
+    """
     # Show results
     h = cv2.cvtColor(target_roi, cv2.COLOR_BGR2HSV)
     ma = cv2.inRange(h, lower_color, upper_color)
@@ -317,7 +318,95 @@ def detect_target_with_color(image):
     contourFrame = makeCountoursBEST(cannyImage, image)
     #showImage("contourFrame", contourFrame)
     showImagesGrid(images, grid_shape=(3, 3), cell_size=(600, 600))
+    tara, _ = find_paper_corners(target_roi)
+    showImage("a", tara)
 
+
+def target_roi_mask_corner_detection(image):
+    lower_color = np.array([20, 20, 150])
+    upper_color = np.array([35, 100, 255])
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_color, upper_color)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    largest_contour = max(contours, key=cv2.contourArea)
+    epsilon = 0.02 * cv2.arcLength(largest_contour, True)
+    approx = cv2.approxPolyDP(largest_contour, epsilon, True)
+
+    if len(approx) == 4:
+        # 6. If the approximation is a quadrilateral, use it as the paper corners
+        for point in approx:
+            x, y = point.ravel()
+            cv2.circle(image, (x, y), 10, (0, 255, 0), -1)
+
+        corners = approx.reshape(4, 2)
+        return image, corners
+    
+    return False, None
+
+def target_roi_binary_corner_detection(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, binary = cv2.threshold(gray, 110, 255, cv2.THRESH_BINARY)
+
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        print("No contours found!")
+        return image, None
+
+    # 4. Select the largest contour (assumes paper is the largest object)
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # 5. Approximate contour to a polygon
+    epsilon = 0.02 * cv2.arcLength(largest_contour, True)
+    approx = cv2.approxPolyDP(largest_contour, epsilon, True)
+
+    if len(approx) == 4:
+        # 6. If the approximation is a quadrilateral, use it as the paper corners
+        for point in approx:
+            x, y = point.ravel()
+            cv2.circle(image, (x, y), 10, (0, 255, 0), -1)
+
+        corners = approx.reshape(4, 2)
+        return image, corners
+
+    else:
+        print(f"Could not find 4 corners, found {len(approx)} points instead!")
+        # Fallback: Use bounding rectangle as approximation
+        x, y, w, h = cv2.boundingRect(largest_contour)
+        corners = np.array([
+            [x, y],           # Top-left
+            [x + w, y],       # Top-right
+            [x + w, y + h],   # Bottom-right
+            [x, y + h]        # Bottom-left
+        ], dtype="float32")
+        
+        # Draw the rectangle as fallback
+        for corner in corners:
+            cx, cy = corner
+            cv2.circle(image, (int(cx), int(cy)), 10, (0, 0, 255), -1)
+
+        result_image, corners = image, corners
+
+        if corners is not None:
+            print("Detected corners:")
+            print(corners)
+
+            # Display the result
+            cv2.imshow("Detected Paper Corners", result_image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        else:
+            print("Corners could not be detected.")
+
+
+def find_paper_corners(target_roi):
+    image, corners = target_roi_mask_corner_detection(target_roi)
+    if image == False:
+        image, corners = target_roi_binary_corner_detection(target_roi)
+
+    showImage(image)
 
 def overlayGrid(img, step=20, line_color=(128, 128, 150), thickness=2, darker_line_color=(0, 0, 255), font_scale=0.8, font_color=(0, 0, 255)):
     """
@@ -378,7 +467,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_3.jpg"
+    imagePath = "images/targets/target_15.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
