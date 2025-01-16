@@ -529,6 +529,28 @@ def calculate_width_height(corners):
     return int(width), int(height)
 
 
+def ask_and_select_target(image):
+    """
+    Function to ask the user if they want to select the target manually. 
+    If the user selects 'Yes', the image is displayed. If 'No', the function returns.
+
+    :param image: The image to display if the user chooses to select the target manually.
+    """
+    while True:
+        print("Do you want to select target manually?")
+        print("Type 'Yes' or 'No' and press Enter.")
+        user_input = input("Your choice: ").strip().lower()
+        
+        if user_input == "yes":
+            return True
+
+        elif user_input == "no":
+            return False
+        
+        else:
+            print("Invalid input. Please type 'Yes' or 'No'.")
+
+
 if __name__ == '__main__':
     # detectAndHighlightCircles("../../images/circles.png")
     # testSkewedImages("../../images/", [0, 5, 10, 15, 20])
@@ -557,6 +579,7 @@ if __name__ == '__main__':
 
     image = readImage(imagePath)
     image = resizeImage(image)
+    originalImage = image
     gridImage = overlayGrid(image)
     #showImage("Grid image", gridImage)
 
@@ -570,6 +593,11 @@ if __name__ == '__main__':
     matrix = cv2.getPerspectiveTransform(pts1, pts2)
     warpedImage = cv2.warpPerspective(image, matrix, (width, height))
     cv2.imshow("warpedTarget", warpedImage)
+    cv2.waitKey(0)
+
+    if(ask_and_select_target(originalImage)):
+        cv2.imshow("warpedTarget", originalImage)
+
     cv2.setMouseCallback("warpedTarget", mousePoints)
     cv2.waitKey(0)
 
