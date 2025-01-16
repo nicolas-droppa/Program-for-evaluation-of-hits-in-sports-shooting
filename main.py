@@ -433,6 +433,8 @@ def find_paper_corners(image):
 
     images.append(image)
     showImagesGrid(images, grid_shape=(3, 3), cell_size=(600, 600))
+    cv2.imshow("finalTarget", image)
+    return corners, image
 
 def overlayGrid(img, step=20, line_color=(128, 128, 150), thickness=2, darker_line_color=(0, 0, 255), font_scale=0.8, font_color=(0, 0, 255)):
     """
@@ -486,6 +488,24 @@ def overlayGrid(img, step=20, line_color=(128, 128, 150), thickness=2, darker_li
     return overlayed_img
 
 
+def mousePoints(event, x, y, flags, params):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print(x, y)
+
+
+def order_points(pts):
+    rect = np.zeros((4, 2), dtype="float32")
+    s = pts.sum(axis=1)
+    rect[0] = pts[np.argmin(s)]  # horný ľavý
+    rect[3] = pts[np.argmax(s)]  # dolný pravý
+
+    diff = np.diff(pts, axis=1)
+    rect[1] = pts[np.argmin(diff)]  # horný pravý
+    rect[2] = pts[np.argmax(diff)]  # dolný ľavý
+
+    return rect
+
+
 if __name__ == '__main__':
     # detectAndHighlightCircles("../../images/circles.png")
     # testSkewedImages("../../images/", [0, 5, 10, 15, 20])
@@ -493,7 +513,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_18.jpg"
+    imagePath = "images/targets/target_5.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
@@ -517,7 +537,19 @@ if __name__ == '__main__':
     gridImage = overlayGrid(image)
     #showImage("Grid image", gridImage)
 
-    find_paper_corners(image)
+    corners, image = find_paper_corners(image)
+    corners = order_points(np.array(corners))
+    print(corners)
+    width, height = 800, 800
+    pts1 = np.float32([corners[0], corners[1], corners[2], corners[3]])
+    print(pts1)
+    #pts2 = np.float32([[0, 0], [0, height], [width, height], [width, 0]])
+    pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
+    matrix = cv2.getPerspectiveTransform(pts1, pts2)
+    warpedImage = cv2.warpPerspective(image, matrix, (width, height))
+    cv2.imshow("warpedTarget", warpedImage)
+    cv2.setMouseCallback("finalTarget", mousePoints)
+    cv2.waitKey(0)
 
 
 print("hello")
