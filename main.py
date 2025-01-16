@@ -3,6 +3,7 @@ from colorama import Fore
 import cv2
 import numpy as np
 from utils.imageOperations import readImage, resizeImage
+from utils.constants import TARGET_MARGIN
 
 
 def showImage(title, img):
@@ -266,8 +267,8 @@ def detect_target_with_color(image):
 
     # 6. Získanie ohraničujúceho obdĺžnika (bounding box) terča
     x, y, w, h = cv2.boundingRect(largest_contour)
-    target_roi = image[y-150:y+h+150, x-150:x+w+150]
-    print("x:" + str(x) + "\ny:" + str(y) + "\nw:" + str(w) + "\nh:" + str(h))
+    target_roi = image[y-TARGET_MARGIN:y+h+TARGET_MARGIN, x-TARGET_MARGIN:x+w+TARGET_MARGIN]
+    #print("x:" + str(x) + "\ny:" + str(y) + "\nw:" + str(w) + "\nh:" + str(h))
 
     # 7. Detekcia rohov v oblasti terča
     """
@@ -322,12 +323,18 @@ def detect_target_with_color(image):
     showImage("a", tara)
 
 
-def target_roi_mask_corner_detection(image):
+def target_roi_mask_corner_detection(image, images):
+    print("ROI_MASK")
     lower_color = np.array([20, 20, 150])
     upper_color = np.array([35, 100, 255])
 
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    images.append(hsv)
     mask = cv2.inRange(hsv, lower_color, upper_color)
+    images.append(mask)
+    mask = medianBlurImage(mask)
+    mask = blurImage(mask)
+    mask = cv2.blur(mask,(5,5))
 
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     largest_contour = max(contours, key=cv2.contourArea)
@@ -341,19 +348,26 @@ def target_roi_mask_corner_detection(image):
             cv2.circle(image, (x, y), 10, (0, 255, 0), -1)
 
         corners = approx.reshape(4, 2)
-        return image, corners
+        return image, corners, True, images
     
-    return False, None
+    return False, [], False, images
 
-def target_roi_binary_corner_detection(image):
+def target_roi_binary_corner_detection(image, images):
+    print("ROI_BINARY")
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _, binary = cv2.threshold(gray, 110, 255, cv2.THRESH_BINARY)
-
+    images.append(gray)
+    bluredImage = medianBlurImage(gray)
+    bluredImage = blurImage(bluredImage)
+    bluredImage = cv2.blur(bluredImage,(5,5))
+    images.append(bluredImage)
+    _, binary = cv2.threshold(bluredImage, 150, 255, cv2.THRESH_BINARY)
+    binary = cv2.blur(binary,(5,5))
+    images.append(binary)
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if not contours:
         print("No contours found!")
-        return image, None
+        return image, [], False, images
 
     # 4. Select the largest contour (assumes paper is the largest object)
     largest_contour = max(contours, key=cv2.contourArea)
@@ -369,7 +383,7 @@ def target_roi_binary_corner_detection(image):
             cv2.circle(image, (x, y), 10, (0, 255, 0), -1)
 
         corners = approx.reshape(4, 2)
-        return image, corners
+        return image, corners, True, images
 
     else:
         print(f"Could not find 4 corners, found {len(approx)} points instead!")
@@ -387,26 +401,38 @@ def target_roi_binary_corner_detection(image):
             cx, cy = corner
             cv2.circle(image, (int(cx), int(cy)), 10, (0, 0, 255), -1)
 
-        result_image, corners = image, corners
-
         if corners is not None:
             print("Detected corners:")
             print(corners)
-
-            # Display the result
-            cv2.imshow("Detected Paper Corners", result_image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            return image, corners, True, images
         else:
             print("Corners could not be detected.")
 
 
-def find_paper_corners(target_roi):
-    image, corners = target_roi_mask_corner_detection(target_roi)
-    if image == False:
-        image, corners = target_roi_binary_corner_detection(target_roi)
+def find_paper_corners(image):
+    images = []
 
-    showImage(image)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower_color = np.array([20, 20, 150])
+    upper_color = np.array([35, 100, 255])
+
+    mask = cv2.inRange(hsv, lower_color, upper_color)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        print("Terč nebol detegovaný!")
+        return
+
+    largest_contour = max(contours, key=cv2.contourArea)
+    x, y, w, h = cv2.boundingRect(largest_contour)
+    target_roi = image[y-TARGET_MARGIN:y+h+TARGET_MARGIN, x-TARGET_MARGIN:x+w+TARGET_MARGIN]
+
+    image, corners, foundCorners, images = target_roi_mask_corner_detection(target_roi, images)
+    if foundCorners == False:
+        image, corners, foundCorners, images = target_roi_binary_corner_detection(target_roi, images)
+
+    images.append(image)
+    showImagesGrid(images, grid_shape=(3, 3), cell_size=(600, 600))
 
 def overlayGrid(img, step=20, line_color=(128, 128, 150), thickness=2, darker_line_color=(0, 0, 255), font_scale=0.8, font_color=(0, 0, 255)):
     """
@@ -467,7 +493,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_15.jpg"
+    imagePath = "images/targets/target_18.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
@@ -491,7 +517,7 @@ if __name__ == '__main__':
     gridImage = overlayGrid(image)
     #showImage("Grid image", gridImage)
 
-    detect_target_with_color(image)
+    find_paper_corners(image)
 
 
 print("hello")
