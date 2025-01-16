@@ -506,6 +506,29 @@ def order_points(pts):
     return rect
 
 
+def calculate_width_height(corners):
+    """
+    Calculate the width and height of a quadrilateral given its four corner coordinates.
+
+    :param corners: A 4x2 numpy array of (x, y) coordinates.
+    :return: A tuple (width, height) representing the dimensions of the quadrilateral.
+    """
+    # Ensure the input is a numpy array
+    corners = np.array(corners)
+
+    # Calculate the Euclidean distances between opposite corners
+    width1 = np.linalg.norm(corners[0] - corners[1])
+    width2 = np.linalg.norm(corners[2] - corners[3])
+    height1 = np.linalg.norm(corners[0] - corners[2])
+    height2 = np.linalg.norm(corners[1] - corners[3])
+
+    # Average the widths and heights
+    width = (width1 + width2) / 2
+    height = (height1 + height2) / 2
+
+    return int(width), int(height)
+
+
 if __name__ == '__main__':
     # detectAndHighlightCircles("../../images/circles.png")
     # testSkewedImages("../../images/", [0, 5, 10, 15, 20])
@@ -513,7 +536,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_5.jpg"
+    imagePath = "images/targets/target_2.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
@@ -540,15 +563,14 @@ if __name__ == '__main__':
     corners, image = find_paper_corners(image)
     corners = order_points(np.array(corners))
     print(corners)
-    width, height = 800, 800
+    width, height = calculate_width_height(corners)
     pts1 = np.float32([corners[0], corners[1], corners[2], corners[3]])
-    print(pts1)
     #pts2 = np.float32([[0, 0], [0, height], [width, height], [width, 0]])
     pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
     matrix = cv2.getPerspectiveTransform(pts1, pts2)
     warpedImage = cv2.warpPerspective(image, matrix, (width, height))
     cv2.imshow("warpedTarget", warpedImage)
-    cv2.setMouseCallback("finalTarget", mousePoints)
+    cv2.setMouseCallback("warpedTarget", mousePoints)
     cv2.waitKey(0)
 
 
