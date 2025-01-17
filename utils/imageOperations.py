@@ -42,8 +42,8 @@ def resizeImage(img):
     screen_width = screen.width
     screen_height = screen.height
 
-    max_width = screen_width * 0.9
-    max_height = screen_height * 0.9
+    max_width = screen_width * SCREEN_RESIZE_FACTOR
+    max_height = screen_height * SCREEN_RESIZE_FACTOR
 
     height, width = img.shape[:2]
 

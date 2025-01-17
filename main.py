@@ -3,7 +3,7 @@ from colorama import Fore
 import cv2
 import numpy as np
 from utils.imageOperations import readImage, resizeImage
-from utils.constants import TARGET_MARGIN
+from utils.constants import TARGET_MARGIN, MANUAL_SELECTION
 
 
 def showImage(title, img):
@@ -284,16 +284,19 @@ if __name__ == '__main__':
     image = resizeImage(image)
     originalImage = image
 
-    #manualSelection(image)
-
-    corners, image = find_paper_corners(image)
-    corners = order_points(np.array(corners))
-    print(corners)
-    width, height = calculate_width_height(corners)
-    pts1 = np.float32([corners[0], corners[1], corners[2], corners[3]])
-    pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
-    matrix = cv2.getPerspectiveTransform(pts1, pts2)
-    warpedImage = cv2.warpPerspective(image, matrix, (width, height))
-    cv2.imshow("warpedTarget", warpedImage)
-    cv2.setMouseCallback("warpedTarget", mousePoints)
+    if (MANUAL_SELECTION):
+        manualSelection(image)
+    
+    else:
+        corners, image = find_paper_corners(image)
+        corners = order_points(np.array(corners))
+        print(corners)
+        width, height = calculate_width_height(corners)
+        pts1 = np.float32([corners[0], corners[1], corners[2], corners[3]])
+        pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
+        matrix = cv2.getPerspectiveTransform(pts1, pts2)
+        warpedImage = cv2.warpPerspective(image, matrix, (width, height))
+        cv2.imshow("warpedTarget", warpedImage)
+        cv2.setMouseCallback("warpedTarget", mousePoints)
+    
     cv2.waitKey(0)
