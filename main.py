@@ -104,47 +104,6 @@ def medianBlurImage(img):
     return cv2.medianBlur(img,5)
 
 
-def findImageEdges(img):
-    """
-    Detects edges in an image using the Canny edge detection algorithm.
-
-    img - image
-    """
-    return cv2.Canny(img, 100, 200)
-
-
-def makeCountoursBEST(img, originalImg):
-    """
-    Finds contours in and image and draws them
-
-    img - image
-    """
-    contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contourFrame = originalImg.copy()
-    contourFrame = cv2.drawContours(contourFrame, contours, -1, (255, 0, 0), 4)
-    cornerFrame = originalImg.copy()
-
-    maxArea = 0
-    biggest = []
-
-    for i in contours:
-        area = cv2.contourArea(i)
-        if area > 500:
-            peri = cv2.arcLength(i, True)
-            edges = cv2.approxPolyDP(i, 0.02*peri, True)
-            if area > maxArea:
-                biggest = edges
-                maxArea = area
-
-    #print(biggest)
-
-    if len(biggest) != 0:
-        # drawRec(biggest, cornerFrame)
-        cornerFrame = cv2.drawContours(cornerFrame, biggest, -1, (255, 0, 255), 5)
-
-    return cornerFrame
-
-
 def target_roi_mask_corner_detection(image, images):
     print("ROI_MASK")
     lower_color = np.array([20, 20, 150])
