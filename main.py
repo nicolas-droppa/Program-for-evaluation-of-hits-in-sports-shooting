@@ -387,16 +387,14 @@ def target_roi_binary_corner_detection(image, images):
 
     else:
         print(f"Could not find 4 corners, found {len(approx)} points instead!")
-        # Fallback: Use bounding rectangle as approximation
         x, y, w, h = cv2.boundingRect(largest_contour)
         corners = np.array([
-            [x, y],           # Top-left
-            [x + w, y],       # Top-right
-            [x + w, y + h],   # Bottom-right
-            [x, y + h]        # Bottom-left
+            [x, y],
+            [x + w, y],
+            [x + w, y + h],
+            [x, y + h]
         ], dtype="float32")
         
-        # Draw the rectangle as fallback
         for corner in corners:
             cx, cy = corner
             cv2.circle(image, (int(cx), int(cy)), 10, (0, 0, 255), -1)
@@ -433,7 +431,6 @@ def find_paper_corners(image):
 
     images.append(image)
     showImagesGrid(images, grid_shape=(3, 3), cell_size=(600, 600))
-    cv2.imshow("finalTarget", image)
     return corners, image
 
 def overlayGrid(img, step=20, line_color=(128, 128, 150), thickness=2, darker_line_color=(0, 0, 255), font_scale=0.8, font_color=(0, 0, 255)):
@@ -487,10 +484,15 @@ def overlayGrid(img, step=20, line_color=(128, 128, 150), thickness=2, darker_li
 
     return overlayed_img
 
+points = np.zeros((4, 2), np.int16)
+counter = 0
 
 def mousePoints(event, x, y, flags, params):
+    global counter
     if event == cv2.EVENT_LBUTTONDOWN:
-        print(x, y)
+        points[counter] = x, y
+        counter = counter + 1
+        print(points)
 
 
 def order_points(pts):
@@ -529,26 +531,24 @@ def calculate_width_height(corners):
     return int(width), int(height)
 
 
-def ask_and_select_target(image):
-    """
-    Function to ask the user if they want to select the target manually. 
-    If the user selects 'Yes', the image is displayed. If 'No', the function returns.
-
-    :param image: The image to display if the user chooses to select the target manually.
-    """
+def manualSelection(image):
     while True:
-        print("Do you want to select target manually?")
-        print("Type 'Yes' or 'No' and press Enter.")
-        user_input = input("Your choice: ").strip().lower()
-        
-        if user_input == "yes":
-            return True
+        if counter == 4:
+            corners = order_points(np.array(points))
+            width, height = calculate_width_height(corners)
+            pts1 = np.float32([corners[0], corners[1], corners[2], corners[3]])
+            pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
+            matrix = cv2.getPerspectiveTransform(pts1, pts2)
+            warpedImage = cv2.warpPerspective(image, matrix, (width, height))
+            cv2.imshow("warpedTarget", warpedImage)
+            break
 
-        elif user_input == "no":
-            return False
-        
-        else:
-            print("Invalid input. Please type 'Yes' or 'No'.")
+        for i in range(0, 4):
+            cv2.circle(image, (points[i][0], points[i][1]), 15, (0, 255, 0), cv2.FILLED)
+
+        cv2.imshow("originalImage", image)
+        cv2.setMouseCallback("originalImage", mousePoints)
+        cv2.waitKey(1)
 
 
 if __name__ == '__main__':
@@ -558,7 +558,7 @@ if __name__ == '__main__':
     # testSkewedImages("../../images/", [50])
 
     #imagePath = "../images/t2.jpg"
-    imagePath = "images/targets/target_2.jpg"
+    imagePath = "images/targets/target_6.jpg"
     # func(imagePath)
 
     #goodCornerDetection(imagePath)
@@ -580,6 +580,9 @@ if __name__ == '__main__':
     image = readImage(imagePath)
     image = resizeImage(image)
     originalImage = image
+
+    manualSelection(image)
+
     gridImage = overlayGrid(image)
     #showImage("Grid image", gridImage)
 
@@ -593,13 +596,5 @@ if __name__ == '__main__':
     matrix = cv2.getPerspectiveTransform(pts1, pts2)
     warpedImage = cv2.warpPerspective(image, matrix, (width, height))
     cv2.imshow("warpedTarget", warpedImage)
-    cv2.waitKey(0)
-
-    if(ask_and_select_target(originalImage)):
-        cv2.imshow("warpedTarget", originalImage)
-
     cv2.setMouseCallback("warpedTarget", mousePoints)
     cv2.waitKey(0)
-
-
-print("hello")
