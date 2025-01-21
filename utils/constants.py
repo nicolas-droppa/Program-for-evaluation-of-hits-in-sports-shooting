@@ -43,4 +43,4 @@ True
 False
     Program will select corners automaticaly.
 """
-MANUAL_SELECTION = True
+MANUAL_SELECTION = False

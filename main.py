@@ -78,32 +78,6 @@ def showImagesGrid(images, window_title="Image Grid", grid_shape=None, cell_size
     cv2.destroyAllWindows()
 
 
-def convertToGrayScale(img):
-    """
-    The function takes an image as an argument and returns converted image in gray color
-
-    img - image
-    """
-    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-
-def blurImage(img):
-    """
-    The function takes an image as an argument and returns blurred image
-
-    img - image
-    """
-    return cv2.GaussianBlur(img, (5, 5), 1)
-
-def medianBlurImage(img):
-    """
-    The function takes an image as an argument and returns blurred image
-
-    img - image
-    """
-    return cv2.medianBlur(img,5)
-
-
 def target_roi_mask_corner_detection(image, images):
     print("ROI_MASK")
     lower_color = np.array([20, 20, 150])
