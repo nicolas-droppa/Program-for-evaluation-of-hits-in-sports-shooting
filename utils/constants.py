@@ -44,3 +44,20 @@ False
     Program will select corners automaticaly.
 """
 MANUAL_SELECTION = False
+
+"""
+DEV_MODE
+
+Description:
+------------
+Variable that makes sure that points of interest are drawn when debuging.
+
+Value:
+------
+True
+    Program will draw debuging circles and marks.
+
+False
+    Program will skip drawing marks and circles.
+"""
+DEV_MODE = False

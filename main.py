@@ -3,7 +3,8 @@ from colorama import Fore
 import cv2
 import numpy as np
 from utils.imageOperations import readImage, resizeImage
-from utils.constants import TARGET_MARGIN, MANUAL_SELECTION
+from utils.imageEffects import blurImage, medianBlurImage, convertToGrayScale
+from utils.constants import TARGET_MARGIN, MANUAL_SELECTION, DEV_MODE
 
 
 def showImage(title, img):
@@ -100,7 +101,8 @@ def target_roi_mask_corner_detection(image, images):
         # 6. If the approximation is a quadrilateral, use it as the paper corners
         for point in approx:
             x, y = point.ravel()
-            cv2.circle(image, (x, y), 10, (0, 255, 0), -1)
+            if (DEV_MODE):
+                cv2.circle(image, (x, y), 10, (0, 255, 0), -1)
 
         corners = approx.reshape(4, 2)
         return image, corners, True, images
@@ -135,7 +137,8 @@ def target_roi_binary_corner_detection(image, images):
         # 6. If the approximation is a quadrilateral, use it as the paper corners
         for point in approx:
             x, y = point.ravel()
-            cv2.circle(image, (x, y), 10, (0, 255, 0), -1)
+            if (DEV_MODE):
+                cv2.circle(image, (x, y), 10, (0, 255, 0), -1)
 
         corners = approx.reshape(4, 2)
         return image, corners, True, images
@@ -152,7 +155,8 @@ def target_roi_binary_corner_detection(image, images):
         
         for corner in corners:
             cx, cy = corner
-            cv2.circle(image, (int(cx), int(cy)), 10, (0, 0, 255), -1)
+            if (DEV_MODE):
+                cv2.circle(image, (int(cx), int(cy)), 10, (0, 0, 255), -1)
 
         if corners is not None:
             print("Detected corners:")
@@ -253,7 +257,7 @@ def manualSelection(image):
 
 
 if __name__ == '__main__':
-    imagePath = "images/targets/target_1.jpg"
+    imagePath = "images/targets/target_11.jpg"
     image = readImage(imagePath)
     image = resizeImage(image)
     originalImage = image
