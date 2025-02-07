@@ -276,5 +276,17 @@ if __name__ == '__main__':
         warpedImage = cv2.warpPerspective(image, matrix, (width, height))
         cv2.imshow("warpedTarget", warpedImage)
         cv2.setMouseCallback("warpedTarget", mousePoints)
+
+    lower_color = np.array([20, 20, 150])
+    upper_color = np.array([35, 100, 255])
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    images.append(hsv)
+    mask = cv2.inRange(hsv, lower_color, upper_color)
+    images.append(mask)
+    mask = medianBlurImage(mask)
+    mask = blurImage(mask)
+    mask = cv2.blur(mask,(5,5))
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     cv2.waitKey(0)
